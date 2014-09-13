@@ -55,6 +55,20 @@ config configPROCFS
     default y
     select configRAMFS
 
+menuconfig configMSDOSFS
+    bool "MSDOSFS"
+    default n
+
+if configMSDOSFS
+
+config configMSDOSFS_DEBUG
+    bool "MSDOSFS debug"
+    default n
+    help
+        MSDOSFS debugging.
+
+endif
+
 menu "FS libs"
 
 config configFS_INPOOL

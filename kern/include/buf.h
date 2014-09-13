@@ -60,6 +60,7 @@ struct buf {
     size_t b_bcount;        /*!< Originally requested buffer size, can be used
                              *   for bounds check. */
     size_t b_blkno;         /*!< Block # on device. */
+    size_t b_lblkno;        /*!< Logical block number. */
 
     /* MMU mappings.             Usually used for user space mapping. */
     mmu_region_t b_mmu;     /*!< MMU struct for user space or special access. */
