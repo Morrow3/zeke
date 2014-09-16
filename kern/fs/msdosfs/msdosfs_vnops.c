@@ -95,8 +95,9 @@
  * the pathname buffer pointed at by cnp->cn_pnbuf, always on error, or
  * only if the SAVESTART bit in cn_flags is clear on success.
  */
-static int msdosfs_create(struct vnode * dvp, struct vnode ** vpp,
-        const char * name, size_t name_len, struct stat * vap)
+static int
+msdosfs_create(struct vnode * dvp, struct vnode ** vpp,
+               const char * name, size_t name_len, struct stat * vap)
 {
     struct denode ndirent;
     struct denode *dep;
@@ -155,14 +156,16 @@ bad:
     return error;
 }
 
-static int msdosfs_mknod(struct vnode * dvp, struct vnode ** vpp,
-        const char * name, size_t name_len, struct stat * vap)
+static int
+msdosfs_mknod(struct vnode * dvp, struct vnode ** vpp,
+              const char * name, size_t name_len, struct stat * vap)
 {
     return -EINVAL;
 }
 
-static int msdosfs_open(struct vnode * vp, int mode, struct proc_info * proc,
-    struct file * fp)
+static int
+msdosfs_open(struct vnode * vp, int mode, struct proc_info * proc,
+             struct file * fp)
 {
     struct denode * dep = VTODE(vp);
     vnode_create_vobject(vp, dep->de_FileSize, proc);
@@ -170,7 +173,8 @@ static int msdosfs_open(struct vnode * vp, int mode, struct proc_info * proc,
     return 0;
 }
 
-static int msdosfs_close(struct vnode * vp, int fflag, struct proc_info * proc)
+static int
+msdosfs_close(struct vnode * vp, int fflag, struct proc_info * proc)
 {
     struct denode * dep = VTODE(vp);
     struct timespec ts;
@@ -299,7 +303,8 @@ msdosfs_getattr(struct vnode * vp, struct stat * vap, struct proc_info * proc)
     return 0;
 }
 
-static int msdosfs_setattr(struct vnode * vp, struct stat * vap, proc_info_t * credproc)
+static int
+msdosfs_setattr(struct vnode * vp, struct stat * vap, proc_info_t * credproc)
 {
     struct denode *dep = VTODE(vp);
     struct msdosfsmount *pmp = dep->de_pmp;
@@ -1251,8 +1256,9 @@ static struct {
     }
 };
 
-static int msdosfs_mkdir(struct vnode * dvp, struct vnode ** vpp,
-                         const char * name, size_t name_len, struct stat * vap)
+static int
+msdosfs_mkdir(struct vnode * dvp, struct vnode ** vpp,
+              const char * name, size_t name_len, struct stat * vap)
 {
     struct denode * dep;
     struct denode * pdep = VTODE(dvp);
@@ -1361,8 +1367,9 @@ bad2:
     return error;
 }
 
-static int msdosfs_rmdir(struct vnode * dvp, struct vnode * vp,
-                         const char * name, size_t name_len)
+static int
+msdosfs_rmdir(struct vnode * dvp, struct vnode * vp,
+              const char * name, size_t name_len)
 {
     struct denode * ip;
     struct denode * dp;
@@ -1413,8 +1420,10 @@ out:
 /*
  * DOS filesystems don't know what symlinks are.
  */
-static int msdosfs_symlink(struct vnode * dvp, struct vnode ** vpp,
-        const char * name, size_t name_len, struct stat * vap, char * target)
+static int
+msdosfs_symlink(struct vnode * dvp, struct vnode ** vpp,
+                const char * name, size_t name_len, struct stat * vap,
+                char * target)
 {
     return -EOPNOTSUPP;
 }
@@ -1744,7 +1753,8 @@ msdosfs_strategy(struct vnode * vp, struct buf * bp)
     return 0;
 }
 
-static int msdosfs_print(struct vnode * vp)
+static int
+msdosfs_print(struct vnode * vp)
 {
     struct denode * dep = VTODE(vp);
     char msgbuf[120];
@@ -1758,7 +1768,8 @@ static int msdosfs_print(struct vnode * vp)
     return 0;
 }
 
-static int msdosfs_pathconf(struct vnode * vp, int name, int * retval)
+static int
+msdosfs_pathconf(struct vnode * vp, int name, int * retval)
 {
     struct msdosfsmount * pmp = VTODE(vp)->de_pmp;
 
@@ -1784,7 +1795,8 @@ static int msdosfs_pathconf(struct vnode * vp, int name, int * retval)
     /* NOTREACHED */
 }
 
-static int msdosfs_vptofh(struct vnode * vp, struct fid * fhp)
+static int
+msdosfs_vptofh(struct vnode * vp, struct fid * fhp)
 {
     struct denode * dep = VTODE(vp);
     struct defid *defhp;

@@ -83,7 +83,8 @@ static int clusteralloc1(struct msdosfsmount * pmp, unsigned long start,
                          unsigned long count, unsigned long fillwith,
                          unsigned long * retcluster, unsigned long * got);
 
-static void fatblock(pmp, ofs, bnp, sizep, bop)
+static void
+fatblock(pmp, ofs, bnp, sizep, bop)
     struct msdosfsmount * pmp;
     unsigned long ofs;
     unsigned long * bnp;

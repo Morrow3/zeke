@@ -70,7 +70,8 @@
 #error configMSDOSFS requires configVFS_HASH
 #endif
 
-static int de_vncmpf(struct vnode * vp, void * arg)
+static int
+de_vncmpf(struct vnode * vp, void * arg)
 {
     const struct denode * const de = VTODE(vp);
     const uint64_t * const a = arg;
@@ -502,9 +503,7 @@ detrunc(dep, length, flags)
  * Extend the file described by dep to length specified by length.
  */
 int
-deextend(dep, length)
-    struct denode *dep;
-    unsigned long length;
+deextend(struct denode * dep, unsigned long length)
 {
     struct msdosfsmount *pmp = dep->de_pmp;
     unsigned long count;
@@ -549,8 +548,7 @@ deextend(dep, length)
  * been moved to a new directory.
  */
 void
-reinsert(dep)
-    struct denode *dep;
+reinsert(struct denode * dep)
 {
     struct vnode *vp;
 
@@ -603,7 +601,8 @@ int msdosfs_reclaim(struct vnode * vp)
     return 0;
 }
 
-int msdosfs_inactive(struct vnode * vp)
+int
+msdosfs_inactive(struct vnode * vp)
 {
     struct denode *dep = VTODE(vp);
     int error = 0;
