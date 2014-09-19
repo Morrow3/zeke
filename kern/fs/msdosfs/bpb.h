@@ -1,6 +1,3 @@
-/* $FreeBSD$ */
-/*  $NetBSD: bpb.h,v 1.7 1997/11/17 15:36:24 ws Exp $   */
-
 /*-
  * Written by Paul Popelka (paulp@uts.amdahl.com)
  *

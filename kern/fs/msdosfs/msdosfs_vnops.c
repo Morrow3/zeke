@@ -1,6 +1,9 @@
-/*  $NetBSD: msdosfs_vnops.c,v 1.68 1998/02/10 14:10:04 mrg Exp $   */
-
-/*-
+/**
+ * @file    msdosfs_vnops.c
+ * @author  Olli Vanhoja
+ * @brief   MSDOSFS
+ * @section LICENSE
+ * Copyright (C) 2014 Olli Vanhoja <olli.vanhoja@cs.helsinki.fi>
  * Copyright (C) 1994, 1995, 1997 Wolfgang Solfrank.
  * Copyright (C) 1994, 1995, 1997 TooLs GmbH.
  * All rights reserved.
@@ -30,8 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-/*-
+ *
+ *
  * Written by Paul Popelka (paulp@uts.amdahl.com)
  *
  * You can do anything you want with this software, just don't say you wrote
@@ -56,6 +59,7 @@
 #include <kstring.h>
 #include <kmalloc.h>
 #include <fs/fs.h>
+#include <fs/devfs.h>
 #include <mount.h>
 #include <proc.h>
 #include <sys/priv.h>
@@ -852,6 +856,7 @@ static int msdosfs_link(struct vnode * tdvp, struct vnode * vp,
     return -EOPNOTSUPP;
 }
 
+#if 0
 /*
  * Renames on files require moving the denode to a new hash queue since the
  * denode's location is used to compute which hash queue to put the file
@@ -1229,6 +1234,7 @@ out:
     return error;
 
 }
+#endif
 
 static struct {
     struct direntry dot;
@@ -1429,7 +1435,7 @@ msdosfs_symlink(struct vnode * dvp, struct vnode ** vpp,
 }
 
 static int
-msdosfs_readdir(vnode_t * vp, struct dirent * d)
+msdosfs_readdir(vnode_t * vp, struct dirent * d, off_t * doff)
 {
     struct mbnambuf nb;
     int error = 0;
@@ -1471,9 +1477,9 @@ msdosfs_readdir(vnode_t * vp, struct dirent * d)
     memset(dirbuf.d_name, '\0', sizeof(dirbuf.d_name));
 
     /* TODO Get rid of this! */
-    if (d->d_off == DSEEKPOS_MAGIC)
-        d->d_off = 0;
-    off = offset = d->d_off;
+    if (*doff == 0x00000000FFFFFFFF)
+        *doff = 0;
+    off = offset = *doff;
 
     dirsperblk = pmp->pm_BytesPerSec / sizeof(struct direntry);
 
@@ -1490,32 +1496,30 @@ msdosfs_readdir(vnode_t * vp, struct dirent * d)
         if (offset < bias) {
             for (n = (int)offset / sizeof(struct direntry);
                  n < 2; n++) {
-                if (FAT32(pmp))
-                    fileno = (uint64_t)cntobn(pmp,
-                                 pmp->pm_rootdirblk)
-                              * dirsperblk;
-                else
+                if (FAT32(pmp)) {
+                    fileno = (uint64_t)
+                             cntobn(pmp, pmp->pm_rootdirblk) * dirsperblk;
+                } else {
                     fileno = 1;
+                }
                 if (pmp->pm_flags & MSDOSFS_LARGEFS) {
-                    dirbuf.d_fileno =
-                        msdosfs_fileno_map(pmp->pm_mountp,
-                        fileno);
+                    dirbuf.d_ino = msdosfs_fileno_map(pmp->pm_mountp, fileno);
                 } else {
 
-                    dirbuf.d_fileno = (uint32_t)fileno;
+                    dirbuf.d_ino = (uint32_t)fileno;
                 }
                 dirbuf.d_type = DT_DIR;
                 switch (n) {
                 case 0:
-                    dirbuf.d_namlen = 1;
+                    //dirbuf.d_namlen = 1;
                     strcpy(dirbuf.d_name, ".");
                     break;
                 case 1:
-                    dirbuf.d_namlen = 2;
+                    //dirbuf.d_namlen = 2;
                     strcpy(dirbuf.d_name, "..");
                     break;
                 }
-                dirbuf.d_reclen = GENERIC_DIRSIZ(&dirbuf);
+                //dirbuf.d_reclen = GENERIC_DIRSIZ(&dirbuf);
                 offset += sizeof(struct direntry);
                 off = offset;
 
@@ -1533,11 +1537,11 @@ msdosfs_readdir(vnode_t * vp, struct dirent * d)
     n = min(pmp->pm_bpcluster - on, sizeof(struct direntry));
     diff = dep->de_FileSize - (offset - bias);
     if (diff <= 0)
-        break;
+        goto out;
     n = min(n, diff);
     error = pcbmap(dep, lbn, &bn, &cn, &blsize);
     if (error)
-        break;
+        goto out;
     error = bread(pmp->pm_devvp, bn, blsize, &bp);
     if (error) {
         brelse(bp);
@@ -1624,23 +1628,24 @@ msdosfs_readdir(vnode_t * vp, struct dirent * d)
             dirbuf.d_type = DT_REG;
         }
         if (pmp->pm_flags & MSDOSFS_LARGEFS) {
-            dirbuf.d_fileno =
+            dirbuf.d_ino =
                 msdosfs_fileno_map(pmp->pm_mountp, fileno);
         } else
-            dirbuf.d_fileno = (uint32_t)fileno;
+            dirbuf.d_ino = (uint32_t)fileno;
 
         if (chksum != winChksum(dentp->deName)) {
+#if 0
             dirbuf.d_namlen = dos2unixfn(dentp->deName,
-                (u_char *)dirbuf.d_name,
+                (unsigned char *)dirbuf.d_name,
                 dentp->deLowerCase |
                 ((pmp->pm_flags & MSDOSFSMNT_SHORTNAME) ?
                 (LCASE_BASE | LCASE_EXT) : 0),
                 pmp);
+#endif
             mbnambuf_init(&nb);
         } else
             mbnambuf_flush(&nb, &dirbuf);
         chksum = -1;
-        dirbuf.d_reclen = GENERIC_DIRSIZ(&dirbuf);
 
         *d = dirbuf; /* copy */
         off = offset + sizeof(struct direntry);
@@ -1648,7 +1653,7 @@ msdosfs_readdir(vnode_t * vp, struct dirent * d)
     brelse(bp);
 
 out:
-    d->d_off = off;
+    *doff = off;
 
     return error;
 }
@@ -1667,7 +1672,7 @@ static int
 msdosfs_bmap(struct vnode * vp, off_t  bn, off_t * bnp, int * runp, int * runb)
 {
     struct denode * dep = VTODE(vp);
-    struct mount * mp;
+    struct fs_superblock * mp;
     struct msdosfsmount * pmp = dep->de_pmp;
     off_t runbn;
     unsigned long cn;
@@ -1686,8 +1691,9 @@ msdosfs_bmap(struct vnode * vp, off_t  bn, off_t * bnp, int * runp, int * runb)
     if (error != 0 || (runp == NULL && runb == NULL))
         return error;
 
-    mp = vp->v_mount;
-    maxio = mp->mnt_iosize_max / mp->mnt_stat.f_iosize;
+    mp = vp->sb;
+    //TODO maxio = mp->mnt_iosize_max / mp->mnt_stat.f_iosize;
+    maxio = 1;
     bnpercn = de_cn2bn(pmp, 1);
     if (runp != NULL) {
         maxrun = ulmin(maxio - 1, pmp->pm_maxcluster - cn);
@@ -1711,11 +1717,12 @@ msdosfs_bmap(struct vnode * vp, off_t  bn, off_t * bnp, int * runp, int * runb)
     return 0;
 }
 
+/* TODO Not needed for zeke? */
+#if 0
 static int
 msdosfs_strategy(struct vnode * vp, struct buf * bp)
 {
     struct denode * dep = VTODE(vp);
-    struct bufobj * bo;
     int error = 0;
     off_t blkno;
 
@@ -1730,7 +1737,7 @@ msdosfs_strategy(struct vnode * vp, struct buf * bp)
         bp->b_blkno = blkno;
         if (error) {
             bp->b_error = error;
-            bp->b_ioflags |= BIO_ERROR;
+            bp->b_flags |= B_IOERROR;
             bufdone(bp);
 
             return 0;
@@ -1747,27 +1754,32 @@ msdosfs_strategy(struct vnode * vp, struct buf * bp)
      * Read/write the block from/to the disk that contains the desired
      * file block.
      */
-    bp->b_iooffset = dbtob(bp->b_blkno);
-    bo = dep->de_pmp->pm_bo;
-    BO_STRATEGY(bo, bp);
+    //bp->b_iooffset = dbtob(bp->b_blkno); TODO Do we need this?
+    //bo = dep->de_pmp->pm_bo;
+    //BO_STRATEGY(bo, bp);
+    // TODO call strategy()?
     return 0;
 }
+#endif
 
 static int
 msdosfs_print(struct vnode * vp)
 {
     struct denode * dep = VTODE(vp);
+    char * devname = devtoname(dep->de_pmp->pm_devvp);
     char msgbuf[120];
 
     ksprintf(msgbuf, sizeof(msgbuf),
              "\tstartcluster %lu, dircluster %lu, diroffset %lu, on dev %s\n",
              dep->de_StartCluster, dep->de_dirclust, dep->de_diroffset,
-             devtoname(dep->de_pmp->pm_dev));
+             (devname) ? devname : "NOT A DEVICE");
     KERROR(KERROR_INFO, msgbuf);
 
     return 0;
 }
 
+/* TODO Not yet implemented */
+#if 0
 static int
 msdosfs_pathconf(struct vnode * vp, int name, int * retval)
 {
@@ -1794,6 +1806,7 @@ msdosfs_pathconf(struct vnode * vp, int name, int * retval)
     }
     /* NOTREACHED */
 }
+#endif
 
 static int
 msdosfs_vptofh(struct vnode * vp, struct fid * fhp)
@@ -1816,15 +1829,15 @@ struct vnode_ops msdosfs_vnode_ops = {
     .read =         msdosfs_read,
     .create =       msdosfs_create,
     .mknod =        msdosfs_mknod,
-    .lookup =       vfs_cache_lookup,
+    .lookup =       msdosfs_lookup,
     .link =         msdosfs_link,
-    .unlink =       msdosfs_unlink,
+    //.unlink =       msdosfs_unlink,
     .mkdir =        msdosfs_mkdir,
     .rmdir =        msdosfs_rmdir,
     .readdir =      msdosfs_readdir,
     .stat =         msdosfs_getattr,
-    .chmod =        msdosfs_chmod,
-    .chown =        msdosfs_chown
+    //.chmod =        msdosfs_chmod,
+    //.chown =        msdosfs_chown
 #if 0 /* BSD */
     .vop_default =      &default_vnodeops,
 

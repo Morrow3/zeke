@@ -122,6 +122,7 @@ typedef struct vm_ops {
 #define B_NOCOPY    0x00100     /*!< Don't copy-on-write this buf. */
 #define B_ASYNC     0x01000     /*!< Start I/O but don't wait for completion. */
 #define B_DELWRI    0x04000     /*!< Delayed write. */
+#define B_IOERROR   0x10000     /*!< IO Error. */
 
 #define BUF_LOCK(bp)    mtx_lock(&(bp)->lock)
 #define BUF_UNLOCK(bp)  mtx_unlock(&(bp)->lock)

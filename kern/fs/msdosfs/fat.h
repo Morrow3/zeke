@@ -1,7 +1,9 @@
-/* $FreeBSD$ */
-/*  $NetBSD: fat.h,v 1.12 1997/11/17 15:36:36 ws Exp $  */
-
-/*-
+/*
+ * @file    fat.h
+ * @author  Olli Vanhoja
+ * @brief   MSDOSFS
+ * @section LICENSE
+ * Copyright (C) 2014 Olli Vanhoja <olli.vanhoja@cs.helsinki.fi>
  * Copyright (C) 1994, 1997 Wolfgang Solfrank.
  * Copyright (C) 1994, 1997 TooLs GmbH.
  * All rights reserved.
@@ -31,8 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-/*-
+ *
+ *
  * Written by Paul Popelka (paulp@uts.amdahl.com)
  *
  * You can do anything you want with this software, just don't say you wrote

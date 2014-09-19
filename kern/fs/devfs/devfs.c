@@ -139,6 +139,16 @@ int dev_make(struct dev_info * devnfo, uid_t uid, gid_t gid, int perms,
     return 0;
 }
 
+const char * devtoname(struct vnode * dev)
+{
+    struct dev_info * devnfo = (struct dev_info *)dev->vn_specinfo;
+
+    if (!(dev->vn_mode & (S_IFBLK | S_IFCHR)))
+        return NULL;
+
+    return devnfo->dev_name;
+}
+
 void dev_destroy(struct dev_info * devnfo)
 {
 }
