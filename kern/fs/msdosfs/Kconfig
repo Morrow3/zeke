@@ -1,0 +1,19 @@
+menuconfig configMSDOSFS
+    bool "MSDOSFS"
+    default n
+    depends on configDEVFS
+    ---help---
+    The msdfosfs driver will permit the kernel to read and write MS-DOS based
+    file systems. This driver covers the FAT12, FAT16 and FAT32 file system
+    versions.
+
+    Some hardware platforms like raspberry may require a FAT boot partition,
+    so this driver is useful for accessing that partiotion too.
+
+if configMSDOSFS
+
+config configMSDOSFS_DEBUG
+    bool "MSDOSFS debug"
+    default n
+
+endif
