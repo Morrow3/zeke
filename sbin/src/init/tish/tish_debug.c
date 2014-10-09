@@ -30,11 +30,11 @@
  *******************************************************************************
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <kstring.h> /* TODO Remove */
-#include <libkern.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h> /* file test */
 #include <time.h> /* file test */
@@ -53,72 +53,71 @@ static char invalid_arg[] = "Invalid argument\n";
 
 static void debug(char ** args)
 {
-    char * arg = kstrtok(0, DELIMS, args);
+    char * arg = strtok_r(0, DELIMS, args);
 
     /* Thread debug commands */
     if (!strcmp(arg, "thread")) {
-        arg = kstrtok(0, DELIMS, args);
+        arg = strtok_r(0, DELIMS, args);
         if (!strcmp(arg, "create")) {
             create_debug_thread();
         } else {
-            puts(invalid_arg);
+            printf("%s", invalid_arg);
         }
     /* Process debug commands */
     } else if (!strcmp(arg, "proc")) {
-        arg = kstrtok(0, DELIMS, args);
+        arg = strtok_r(0, DELIMS, args);
         if (!strcmp(arg, "fork")) {
             pid_t pid = fork();
             if (pid == -1) {
-                puts("fork() failed\n");
+                printf("fork() failed\n");
             } else if (pid == 0) {
-                puts("Hello from the child process\n");
+                printf("Hello from the child process\n");
                 for (int i = 0; i < 10; i++) {
-                    puts(".");
+                    printf(".");
                     msleep(500);
                 }
                 exit(0);
             } else {
                 int status;
-                char buf[20];
-                puts("original\n");
+
+                printf("original\n");
                 wait(&status);
-                ksprintf(buf, sizeof(buf), "status: %u\n", status);
-                puts(buf);
+                printf("status: %u\n", status);
             }
         } else {
             puts(invalid_arg);
         }
     /* Data Abort Commands */
     } else if (!strcmp(arg, "dab")) {
-        arg = kstrtok(0, DELIMS, args);
+        arg = strtok_r(0, DELIMS, args);
         if (!strcmp(arg, "fatal")) {
-            puts("Trying fatal DAB\n");
+            printf("Trying fatal DAB\n");
             int * x = (void *)0xfffffff;
             *x = 1;
         } else {
-            puts(invalid_arg);
+            printf("%s", invalid_arg);
         }
     } else if (!strcmp(arg, "ioctl")) {
-        arg = kstrtok(0, DELIMS, args);
+        arg = strtok_r(0, DELIMS, args);
         if (!strcmp(arg, "termios")) {
             struct termios term;
             int err;
-            char buf[80];
 
             err = tcgetattr(STDOUT_FILENO, &term);
             if (err)
                 return;
 
-            ksprintf(buf, sizeof(buf), "cflags: %u\nispeed: %u\nospeed: %u\n",
-                    term.c_cflag, term.c_ispeed, term.c_ospeed);
-            puts(buf);
+            printf("cflags: %u\nispeed: %u\nospeed: %u\n",
+                   term.c_cflag, term.c_ispeed, term.c_ospeed);
         } else {
-            puts(invalid_arg);
+            printf("%s", invalid_arg);
         }
     } else if (!strcmp(arg, "file")) {
-        const char text[] = "This is a test.\n";
         char buf[80];
-        int fildes = open("file", O_RDWR | O_CREAT | O_TRUNC,
+        const char text[] = "This is a test.\n";
+        int fildes;
+
+        fildes = open("file", O_RDWR | O_CREAT | O_TRUNC,
                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
         if (fildes < 0)
             return;
@@ -128,9 +127,9 @@ static void debug(char ** args)
         read(fildes, buf, sizeof(buf));
         close(fildes);
 
-        puts(buf);
+        printf("%s", buf);
     } else {
-        puts("Invalid subcommand\n");
+        printf("Invalid subcommand\n");
         errno = EINVAL;
     }
 }
@@ -139,16 +138,14 @@ TISH_CMD(debug, "debug");
 static void create_debug_thread(void)
 {
     static pthread_t test_tid;
-    char buf[80];
     char * newstack;
 
     errno = 0;
     if ((newstack = sbrk(1024)) == (void *)-1) {
-        puts("Failed to create a stack\n");
+        printf("Failed to create a stack\n");
         return;
     }
-    ksprintf(buf, sizeof(buf), "New stack @ %p\n", newstack);
-    puts(buf);
+    printf("New stack @ %p\n", newstack);
 
     pthread_attr_t attr = {
         .tpriority  = 0,
@@ -158,11 +155,10 @@ static void create_debug_thread(void)
 
     errno = 0;
     if (pthread_create(&test_tid, &attr, test_thread, 0)) {
-        puts("Thread creation failed\n");
+        printf("Thread creation failed\n");
         return;
     }
-    ksprintf(buf, sizeof(buf), "Thread created with id: %u and stack: %p\n", test_tid, newstack);
-    puts(buf);
+    printf("Thread created with id: %u and stack: %p\n", test_tid, newstack);
 }
 
 static void * test_thread(void * arg)
@@ -176,7 +172,6 @@ static void * test_thread(void * arg)
 static void thread_stat(void)
 {
     /* Print thread id & cpu mode */
-    char buf[80];
     uint32_t mode, sp;
     pthread_t id = pthread_self();
 
@@ -184,6 +179,5 @@ static void thread_stat(void)
         "mrs     %0, cpsr\n\t"
         "mov     %1, sp"
         : "=r" (mode), "=r" (sp));
-    ksprintf(buf, sizeof(buf), "My id: %u, sp: %x, my mode: %x\n", id, sp, mode);
-    puts(buf);
+    printf("My id: %u, sp: %x, my mode: %x\n", id, sp, mode);
 }

@@ -30,9 +30,10 @@
  *******************************************************************************
  */
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
-#include <kstring.h> /* TODO Remove */
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -41,11 +42,9 @@
 #include <sys/stat.h>
 #include "tish.h"
 
-//static char invalid_arg[] = "Invalid argument\n";
-
 static void cd(char ** args)
 {
-    char * arg = kstrtok(0, DELIMS, args);
+    char * arg = strtok_r(0, DELIMS, args);
     if (!arg)
         fprintf(stderr, "cd missing argument.\n");
     else
@@ -55,7 +54,7 @@ TISH_CMD(cd, "cd");
 
 static void ls(char ** args)
 {
-    char * path = kstrtok(0, DELIMS, args);
+    char * path = strtok_r(0, DELIMS, args);
     int fildes, count;
     struct dirent dbuf[10];
 
@@ -64,25 +63,23 @@ static void ls(char ** args)
 
     fildes = open(path, O_DIRECTORY | O_RDONLY | O_SEARCH);
     if (fildes < 0) {
-        puts("Open failed\n");
+        printf("Open failed\n");
         return;
     }
 
     while ((count = getdents(fildes, (char *)dbuf, sizeof(dbuf))) > 0) {
         for (int i = 0; i < count; i++) {
-            char buf[80];
             struct stat stat;
 
             fstatat(fildes, dbuf[i].d_name, &stat, 0);
 
-            ksprintf(buf, sizeof(buf), "%u %o %u:%u %s\n",
+            printf("%u %o %u:%u %s\n",
                      (uint32_t)dbuf[i].d_ino, (uint32_t)stat.st_mode,
                      (uint32_t)stat.st_uid, (uint32_t)stat.st_gid,
                      dbuf[i].d_name);
-            puts(buf);
         }
     }
-    puts("\n");
+    printf("\n");
 
     close(fildes);
 }
@@ -91,7 +88,7 @@ TISH_CMD(ls, "ls");
 static void touch(char ** args)
 {
     int fildes;
-    char * path = kstrtok(0, DELIMS, args);
+    char * path = strtok_r(0, DELIMS, args);
 
     fildes = creat(path, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (fildes < 0)
@@ -103,7 +100,7 @@ TISH_CMD(touch, "touch");
 
 static void tish_mkdir(char ** args)
 {
-    char * path = kstrtok(0, DELIMS, args);
+    char * path = strtok_r(0, DELIMS, args);
 
     mkdir(path, S_IRWXU | S_IRGRP | S_IXGRP);
 }
@@ -111,7 +108,7 @@ TISH_CMD(tish_mkdir, "mkdir");
 
 static void tish_rmdir(char ** args)
 {
-    char * path = kstrtok(0, DELIMS, args);
+    char * path = strtok_r(0, DELIMS, args);
 
     rmdir(path);
 }
@@ -119,7 +116,7 @@ TISH_CMD(tish_rmdir, "rmdir");
 
 static void tish_unlink(char ** args)
 {
-    char * path = kstrtok(0, DELIMS, args);
+    char * path = strtok_r(0, DELIMS, args);
 
     unlink(path);
 }
@@ -127,7 +124,7 @@ TISH_CMD(tish_unlink, "unlink");
 
 static void tish_cat(char ** args)
 {
-    char * path = kstrtok(0, DELIMS, args);
+    char * path = strtok_r(0, DELIMS, args);
     int fildes = open(path, O_RDONLY);
     char buf[80];
     ssize_t ret;

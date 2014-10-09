@@ -30,14 +30,17 @@
  *******************************************************************************
  */
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <sys/types.h>
-#include <kstring.h>
 #include <unistd.h>
-#include <libkern.h>
 #include <syscall.h>
 #include <sys/sysctl.h>
 #include <errno.h>
 #include "tish.h"
+
+#define num_elem(x) (sizeof(x) / sizeof(*(x)))
 
 static void list_all(void);
 static void getset_parm(char * arg);
@@ -49,7 +52,7 @@ static void print_mib_name(int * mib, int len);
 
 static void tish_sysctl_cmd(char ** args)
 {
-    char * arg = kstrtok(0, DELIMS, args);
+    char * arg = strtok_r(0, DELIMS, args);
 
     if (!strcmp(arg, "-a")) {
         list_all();
@@ -73,39 +76,34 @@ static void getset_parm(char * arg)
     int ctltype;
     size_t dlen;
 
-    name = kstrtok(arg, "=", &rest);
-    value = kstrtok(0, "=", &rest);
+    name = strtok_r(arg, "=", &rest);
+    value = strtok_r(0, "=", &rest);
     if (!name) {
-        puts("Invalid argument\n");
+        printf("Invalid argument\n");
         return;
     }
-    const size_t name_len = strlenn(name, 80);
 
     const int mib_len = sysctlnametomib(name, mib, num_elem(mib));
     if (mib_len < 0) {
-        puts("Node not found\n");
+        printf("Node not found\n");
         return;
     }
 
-    {
-        char buf[name_len + 5];
-        ksprintf(buf, sizeof(buf), "%s = ", name);
-        puts(buf);
-    }
+    printf("%s = ", name);
 
     if (sysctloidfmt(mib, mib_len, fmt, &kind)) {
-        puts("Invalid node\n");
+        printf("Invalid node\n");
         return;
     }
     if (sysctl(mib, mib_len, 0, &dlen, 0, 0)) {
-        puts("Invalid node\n");
+        printf("Invalid node\n");
         return;
     }
 
     ctltype = (kind & CTLTYPE);
     switch (ctltype) {
     case CTLTYPE_STRING:
-        getset_svalue(mib, mib_len, dlen, value, strlenn(value, 80));
+        getset_svalue(mib, mib_len, dlen, value, strnlen(value, 80));
         break;
     case CTLTYPE_INT:
     case CTLTYPE_UINT:
@@ -115,7 +113,7 @@ static void getset_parm(char * arg)
     case CTLTYPE_ULONG:
     case CTLTYPE_S64:
     case CTLTYPE_U64:
-        puts("Data type not supported yet\n");
+        printf("Data type not supported yet\n");
         break;
     }
 }
@@ -124,20 +122,17 @@ static void getset_svalue(int * oid, int len, size_t oval_len,
         char * nval, size_t nval_len)
 {
     char ovalbuf[oval_len + 1];
-    char buf[40 + oval_len];
 
     if(sysctl(oid, len, ovalbuf, &oval_len, (void *)nval, nval_len)) {
         /* Failed, errno set */
         return;
     }
-    ksprintf(buf, sizeof(buf), "%s\n", ovalbuf);
-    puts(buf);
+    printf("%s\n", ovalbuf);
 }
 
 static void getset_ivalue(int * oid, int len, size_t oval_len,
         char * nval, size_t nval_len)
 {
-    char buf[80];
     int x;
     size_t x_len = sizeof(x);
 
@@ -146,8 +141,7 @@ static void getset_ivalue(int * oid, int len, size_t oval_len,
         /* Failed, errno set */
         return;
     }
-    ksprintf(buf, sizeof(buf), "%u\n", x);
-    puts(buf);
+    printf("%u\n", x);
 
     /* Set value */
     if (nval) {
@@ -172,18 +166,16 @@ static void list_all(void)
 
 static void print_mib_name(int * mib, int len)
 {
-    char buf[41];
     char strname[40];
     size_t strname_len = sizeof(strname);
 
     sysctlmibtoname(mib, len, strname, &strname_len);
-    ksprintf(buf, sizeof(buf), "%s\n", strname);
-    puts(buf);
+    printf("%s\n", strname);
 }
 
 static void tish_uname(char ** args)
 {
-    char * arg = kstrtok(0, DELIMS, args);
+    char * arg = strtok_r(0, DELIMS, args);
     int mib[2];
     int len;
     char str[20];
@@ -193,30 +185,28 @@ static void tish_uname(char ** args)
 
     len = sysctlnametomib("kern.ostype", mib, num_elem(mib));
     sysctl(mib, len, &str, &str_len, 0, 0);
-    ksprintf(buf2, sizeof(buf2), "%s", str);
+    snprintf(buf2, sizeof(buf2), "%s", str);
 
     if (!strcmp(arg, "-a")) {
         len = sysctlnametomib("kern.osrelease", mib, num_elem(mib));
         str_len = sizeof(str);
         sysctl(mib, len, &str, &str_len, 0, 0);
-        ksprintf(buf1, sizeof(buf1), "%s %s", buf2, str);
+        snprintf(buf1, sizeof(buf1), "%s %s", buf2, str);
         memcpy(buf2, buf1, sizeof(buf1));
 
         len = sysctlnametomib("kern.version", mib, num_elem(mib));
         str_len = sizeof(str);
         sysctl(mib, len, &str, &str_len, 0, 0);
-        ksprintf(buf1, sizeof(buf1), "%s %s",buf2, str);
+        snprintf(buf1, sizeof(buf1), "%s %s",buf2, str);
         memcpy(buf2, buf1, sizeof(buf1));
     }
 
-    ksprintf(buf1, sizeof(buf1), "%s\n", buf2);
-    puts(buf1);
+    printf("%s\n", buf2);
 }
 TISH_CMD(tish_uname, "uname");
 
 static void tish_ikut(char ** arg)
 {
-    char buf[80];
     int mib_test[5];
     int mib_cur[5];
     int mib_next[5];
@@ -226,7 +216,7 @@ static void tish_ikut(char ** arg)
 
     const size_t len_test = sysctlnametomib("debug.test", mib_test, num_elem(mib_test));
 
-    puts("     \n"); /* Hack */
+    printf("     \n"); /* Hack */
     print_mib_name(mib_test, len_test);
 
     memcpy(mib_cur, mib_test, len_test * sizeof(int));
@@ -235,7 +225,7 @@ static void tish_ikut(char ** arg)
     while ((len_next = sizeof(mib_next)),
             (err = sysctlgetnext(mib_cur, len_cur, mib_next, &len_next)) == 0) {
         if (!sysctltstmib(mib_next, mib_test, len_test)) {
-            puts("End of tests\n");
+            printf("End of tests\n");
             break; /* EOF debug.test */
         }
         memcpy(mib_cur, mib_next, len_next * sizeof(int));
@@ -245,7 +235,6 @@ static void tish_ikut(char ** arg)
         sysctl(mib_cur, len_cur, 0, 0, (void *)(&one), sizeof(one));
     }
 
-    ksprintf(buf, sizeof(buf), "errno = %i\n", errno);
-    puts(buf);
+    printf("errno = %i\n", errno);
 }
 TISH_CMD(tish_ikut, "ikut");

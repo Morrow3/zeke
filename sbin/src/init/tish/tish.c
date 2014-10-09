@@ -30,9 +30,9 @@
  *******************************************************************************
  */
 
+#include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
-#include <kstring.h>
-#include <libkern.h>
 #include <zeke.h>
 #include <errno.h>
 #include <unistd.h>
@@ -54,11 +54,11 @@ int tish(void)
     int err;
 
     while (1) {
-        puts("# ");
+        printf("# ");
         if (!gline(line, MAX_LEN))
             break;
 
-        if ((cmd_name = kstrtok(line, DELIMS, &strtok_lasts))) {
+        if ((cmd_name = strtok_r(line, DELIMS, &strtok_lasts))) {
             struct tish_builtin ** cmd;
             errno = 0;
 
@@ -69,12 +69,11 @@ int tish(void)
                 }
             }
 
-            puts("I don't know how to execute\n");
+            printf("I don't know how to execute\n");
 
 get_errno:
             if ((err = errno)) {
-                ksprintf(line, sizeof(line), "\nFailed, errno: %u\n", err);
-                puts(line);
+                printf("\nFailed, errno: %u\n", err);
             }
 
             if (tish_eof)
@@ -88,33 +87,31 @@ get_errno:
 static void uptime(char ** args)
 {
     uint32_t loads[3];
-    char buf[40];
 
     syscall(SYSCALL_SCHED_GET_LOADAVG, loads);
 
-    ksprintf(buf, sizeof(buf), "load average: %u, %u, %u\n", loads[0], loads[1], loads[2]);
-    puts(buf);
+    printf("load average: %u, %u, %u\n", loads[0], loads[1], loads[2]);
 }
 TISH_CMD(uptime, "uptime");
 
 static void reg(char ** args)
 {
-    char * arg = kstrtok(0, DELIMS, args);
+    char * arg = strtok_r(0, DELIMS, args);
     char buf[40] = "Invalid argument\n";
 
     if (!strcmp(arg, "sp")) {
         void * sp;
 
         __asm__ ("mov %[result], sp" : [result] "=r" (sp));
-        ksprintf(buf, sizeof(buf), "sp = %p\n", sp);
+        snprintf(buf, sizeof(buf), "sp = %p\n", sp);
     } else if (!strcmp(arg, "cpsr")) {
         uint32_t mode;
 
         __asm__ ("mrs     %0, cpsr" : "=r" (mode));
-        ksprintf(buf, sizeof(buf), "cpsr = %x\n", mode);
+        snprintf(buf, sizeof(buf), "cpsr = %x\n", mode);
     }
 
-    puts(buf);
+    printf("%s", buf);
 }
 TISH_CMD(reg, "reg");
 
@@ -129,11 +126,10 @@ static void help(char ** args)
     struct tish_builtin ** cmd;
 
     SET_FOREACH(cmd, tish_cmd) {
-        puts((*cmd)->name);
-        puts(" ");
+        printf("%s ", (*cmd)->name);
     }
 
-    puts("\n");
+    printf("\n");
 }
 TISH_CMD(help, "help");
 
@@ -156,7 +152,7 @@ static char * gline(char * str, int num)
         if (ch == 127) {
             if (i > 0) {
                 i--;
-                puts("\b \b");
+                printf("\b \b");
             }
             continue;
         }
@@ -167,14 +163,14 @@ static char * gline(char * str, int num)
         if (ch == '\n' || ch == '\r' || i == num) {
             str[i] = '\0';
             buf[0] = '\n';
-            puts(buf);
+            printf("%s", buf);
             return str;
         } else {
             str[i] = ch;
         }
 
         buf[0] = ch;
-        puts(buf);
+        printf("%s", buf);
         i++;
     }
 }

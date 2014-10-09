@@ -1,8 +1,8 @@
 /**
  *******************************************************************************
- * @file    tish_dir.c
+ * @file    tish.h
  * @author  Olli Vanhoja
- * @brief   Directory manipulation commands for tish/Zeke.
+ * @brief   Tiny Init Shell for debugging in init.
  * @section LICENSE
  * Copyright (c) 2014 Olli Vanhoja <olli.vanhoja@cs.helsinki.fi>
  * All rights reserved.
@@ -30,26 +30,26 @@
  *******************************************************************************
  */
 
-#include <stdlib.h>
-#include <sys/types.h>
-#include <kstring.h> /* TODO Remove */
-#include <unistd.h>
-#include <errno.h>
-#include <mount.h>
-#include "tish.h"
+#pragma once
+#ifndef TISH_H
+#define TISH_H
 
+#include <sys/linker_set.h>
 
-static void tish_mount(char ** args)
-{
-    char * src = kstrtok(0, DELIMS, args);
-    char * dest = kstrtok(0, DELIMS, args);
-    char * fs = kstrtok(0, DELIMS, args);
+#define MAX_LEN 80
+#define DELIMS  " \t\r\n"
 
-    if (!src || !dest || !fs) {
-        puts("Invalid args\n"
-             "mount src dest fs\n");
-    }
+struct tish_builtin {
+    char name[10];
+    void (*fn)(char ** args);
+};
 
-    mount(src, dest, fs, 0, "");
-}
-TISH_CMD(tish_mount, "mount");
+#define TISH_CMD(fun, cmdnamestr)           \
+    static struct tish_builtin fun##_st = { \
+        .name = cmdnamestr, .fn = fun       \
+    };                                      \
+    DATA_SET(tish_cmd, fun##_st)
+
+int tish(void);
+
+#endif /* TISH_H */

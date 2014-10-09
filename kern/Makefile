@@ -135,13 +135,13 @@ $(KERNEL_IMG): $(MEMMAP) $(STARTUP_O) $(MODAS)
 .PHONY: kernel clean
 
 clean:
-	rm -f $(ASOBJS) $(OBJS) $(STARTUP_O)
-	rm -f $(BCS)
+	$(RM) $(ASOBJS) $(OBJS) $(STARTUP_O)
+	$(RM) $(BCS)
 	find . -type f -name "*.bc" -exec rm -f {} \;
 	find . -type f -name "*.opt.bc" -exec rm -f {} \;
 	find . -type f -name "*.opt.s" -exec rm -f {} \;
-	rm -f *.bin
-	rm -f *.img
-	rm -f *.elf
-	rm -f *.list
-	rm -f *.a
+	$(RM) *.bin
+	$(RM) *.img
+	$(RM) *.elf
+	$(RM) *.list
+	$(RM) *.a

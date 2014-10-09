@@ -30,10 +30,10 @@
  *******************************************************************************
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <kstring.h> /* TODO Remove */
 #include <errno.h>
 #include <time.h>
 #include "tish.h"
@@ -42,7 +42,6 @@
 static void tish_date(char ** args)
 {
     struct timespec ts = {0, 0};
-    char buf[40];
     int sec, nsec;
 
     if (clock_gettime(CLOCK_REALTIME, &ts))
@@ -51,7 +50,6 @@ static void tish_date(char ** args)
     sec = ts.tv_sec;
     nsec = ts.tv_nsec;
 
-    ksprintf(buf, sizeof(buf), "%u.%u\n", sec, nsec);
-    puts(buf);
+    printf("%u.%u\n", sec, nsec);
 }
 TISH_CMD(tish_date, "date");

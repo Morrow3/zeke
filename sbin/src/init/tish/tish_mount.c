@@ -1,8 +1,8 @@
 /**
  *******************************************************************************
- * @file    tish.h
+ * @file    tish_dir.c
  * @author  Olli Vanhoja
- * @brief   Tiny Init Shell for debugging in init.
+ * @brief   Directory manipulation commands for tish/Zeke.
  * @section LICENSE
  * Copyright (c) 2014 Olli Vanhoja <olli.vanhoja@cs.helsinki.fi>
  * All rights reserved.
@@ -30,30 +30,27 @@
  *******************************************************************************
  */
 
-#pragma once
-#ifndef TISH_H
-#define TISH_H
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+#include <mount.h>
+#include "tish.h"
 
-#include <sys/linker_set.h>
 
-#define MAX_LEN 80
-#define DELIMS  " \t\r\n"
+static void tish_mount(char ** args)
+{
+    char * src = strtok_r(0, DELIMS, args);
+    char * dest = strtok_r(0, DELIMS, args);
+    char * fs = strtok_r(0, DELIMS, args);
 
-/* TODO Remove */
-#define fprintf(stream, str) write(STDOUT_FILENO, str, strlenn(str, MAX_LEN) + 1)
-#define puts(str) fprintf(stderr, str)
+    if (!src || !dest || !fs) {
+        printf("Invalid args\n"
+             "mount src dest fs\n");
+    }
 
-struct tish_builtin {
-    char name[10];
-    void (*fn)(char ** args);
-};
-
-#define TISH_CMD(fun, cmdnamestr)           \
-    static struct tish_builtin fun##_st = { \
-        .name = cmdnamestr, .fn = fun       \
-    };                                      \
-    DATA_SET(tish_cmd, fun##_st)
-
-int tish(void);
-
-#endif /* TISH_H */
+    mount(src, dest, fs, 0, "");
+}
+TISH_CMD(tish_mount, "mount");

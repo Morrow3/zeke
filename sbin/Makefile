@@ -1,4 +1,4 @@
-# Zeke - /lib Makefile
+# Zeke - /sbin Makefile
 #
 # Copyright (c) 2014 Olli Vanhoja <olli.vanhoja@cs.helsinki.fi>
 # All rights reserved.
@@ -32,15 +32,10 @@ include $(ROOT_DIR)/genconfig/dist.mk
 .SUFFIXES:                  	# Delete the default suffixes
 .SUFFIXES: .c .bc .o .h .S ._S	# Define our suffix list
 
-LIBS = libc
+SBIN = init
 
 # Source Files #################################################################
-libc-SRC-y = \
-$(wildcard libc/*.c) \
-$(wilrcard libc/gen/*.c) \
-$(wildcard libc/stdio/*.c) \
-$(wildcard libc/stdlib/*.c) \
-$(wildcard libc/string/*.c)
+init-SRC-y = $(wildcard src/init/*.c) $(wildcard src/init/tish/*.c)
 ################################################################################
 # Available selections for source code files:
 SRC-	=# C sources
@@ -52,8 +47,8 @@ ASRC-y	=#
 # (A)SRC- and (A)SRC-n meaning that submodule won't be compiled
 
 # All sources
-SRC-y += $(foreach var,$(LIBS), $($(var)-SRC-y))
-ASRC-y += $(foreach var,$(LIBS), $($(var)-ASRC-y))
+SRC-y += $(foreach var,$(SBIN), $($(var)-SRC-y))
+ASRC-y += $(foreach var,$(SBIN), $($(var)-ASRC-y))
 
 # Assembly Obj files
 ASOBJS := $(patsubst %.S, %.o, $(ASRC-y))
@@ -62,35 +57,29 @@ ASOBJS := $(patsubst %.S, %.o, $(ASRC-y))
 BCS := $(patsubst %.c, %.bc, $(SRC-y))
 OBJS := $(patsubst %.c, %.o, $(SRC-y))
 
-# a files for static libr
-LIBSA = $(addsuffix .a, $(LIBS))
-
-
-all: $(LIBSA)
+all: $(SBIN)
 
 $(ASOBJS): $(ASRC-y) $(AUTOCONF_H)
 	@echo "AS $@"
 	@$(UNIFDEFALL) $(IDIR) $*.S | $(ARMGNU)-as -am $(IDIR) -o $@
 
-$(BCS): $(SRC-y) $(AUTOCONF_H)
-	@echo "CC $@"
-	@$(CC) $(CCFLAGS) $(IDIR) -c $*.c -o $@
-
-$(OBJS): $(BCS)
+$(OBJS): $(SRC-y) $(AUTOCONF_H)
+	$(eval CUR_BC := $*.bc)
 	$(eval CUR_OPT := $*.opt.bc)
 	$(eval CUR_OPT_S := $*.opt.s)
-	@echo "AS $@"
+	@echo "CC $@"
+	@$(CC) $(CCFLAGS) $(IDIR) -c $*.c -o $(CUR_BC)
 	@$(OPT) $(OFLAGS) $*.bc -o $(CUR_OPT)
 	@$(LLC) $(LLCFLAGS) $(CUR_OPT) -o $(CUR_OPT_S)
 	@$(ARMGNU)-as $(CUR_OPT_S) -o $@ $(ASFLAGS)
 
-$(LIBSA): $(OBJS)
-	$(eval CUR_LIB := $(basename $@))
-	$(eval CUR_OBJS += $(patsubst %.S, %.o, $($(CUR_LIB)-ASRC-y)))
-	$(eval CUR_OBJS := $(patsubst %.c, %.o, $($(CUR_LIB)-SRC-y)))
-	@echo "AR $@"
-	@ar rcs $@ $(CUR_OBJS)
+$(SBIN): $(OBJS)
+	$(eval CUR_BIN := $(basename $@))
+	$(eval CUR_OBJS += $(patsubst %.S, %.o, $($(CUR_BIN)-ASRC-y)))
+	$(eval CUR_OBJS := $(patsubst %.c, %.o, $($(CUR_BIN)-SRC-y)))
+	@echo "LD $@"
+	$(ARMGNU)-ld -o $@ $(LDFLAGS) $(LDIR) $(CRT) $(CUR_OBJS) -lc
 
 clean:
-	rm -f $(ASOBJS) $(OBJS)
-	rm -f *.a
+	$(RM) $(ASOBJS) $(OBJS)
+	$(RM) *.a
